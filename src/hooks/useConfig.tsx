@@ -38,12 +38,12 @@ export type UserSettings = {
 
 // Fallback if NEXT_PUBLIC_APP_CONFIG is not set
 const defaultConfig: AppConfig = {
-  title: "LiveKit Agents Playground",
-  description: "A playground for testing LiveKit Agents",
+  title: "Kno2gether Agency Playground",
+  description: "A playground for Dental Assistant at Knolabs Dental Agency",
   video_fit: "cover",
   settings: {
     editable: true,
-    theme_color: "cyan",
+    theme_color: "red",
     chat: true,
     inputs: {
       camera: true,

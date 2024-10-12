@@ -6,7 +6,6 @@ import { ColorPicker } from "@/components/colorPicker/ColorPicker";
 import { AudioInputTile } from "@/components/config/AudioInputTile";
 import { ConfigurationPanelItem } from "@/components/config/ConfigurationPanelItem";
 import { NameValueRow } from "@/components/config/NameValueRow";
-import { PlaygroundHeader } from "@/components/playground/PlaygroundHeader";
 import {
   PlaygroundTab,
   PlaygroundTabbedTile,
@@ -23,29 +22,24 @@ import {
   useRoomInfo,
   useTracks,
   useVoiceAssistant,
+  TrackToggle,
 } from "@livekit/components-react";
 import { ConnectionState, LocalParticipant, Track } from "livekit-client";
-import { QRCodeSVG } from "qrcode.react";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import tailwindTheme from "../../lib/tailwindTheme.preval";
-
-export interface PlaygroundMeta {
-  name: string;
-  value: string;
-}
 
 export interface PlaygroundProps {
   logo?: ReactNode;
   themeColors: string[];
   onConnect: (connect: boolean, opts?: { token: string; url: string }) => void;
+  onClose: () => void;
 }
-
-const headerHeight = 56;
 
 export default function Playground({
   logo,
   themeColors,
   onConnect,
+  onClose,
 }: PlaygroundProps) {
   const { config, setUserSettings } = useConfig();
   const { name } = useRoomInfo();
@@ -106,68 +100,37 @@ export default function Playground({
 
   useDataChannel(onDataReceived);
 
-  const videoTileContent = useMemo(() => {
-    const videoFitClassName = `object-${config.video_fit || "cover"}`;
-
-    const disconnectedContent = (
-      <div className="flex items-center justify-center text-gray-700 text-center w-full h-full">
-        No video track. Connect to get started.
-      </div>
-    );
-
-    const loadingContent = (
-      <div className="flex flex-col items-center justify-center gap-2 text-gray-700 text-center h-full w-full">
-        <LoadingSVG />
-        Waiting for video track
-      </div>
-    );
-
-    const videoContent = (
-      <VideoTrack
-        trackRef={agentVideoTrack}
-        className={`absolute top-1/2 -translate-y-1/2 ${videoFitClassName} object-position-center w-full h-full`}
-      />
-    );
-
-    let content = null;
-    if (roomState === ConnectionState.Disconnected) {
-      content = disconnectedContent;
-    } else if (agentVideoTrack) {
-      content = videoContent;
-    } else {
-      content = loadingContent;
+  const localVideoContent = useMemo(() => {
+    if (!localVideoTrack) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-2 text-gray-700 text-center h-full w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <p>Camera is off</p>
+        </div>
+      );
     }
 
     return (
-      <div className="flex flex-col w-full grow text-gray-950 bg-black rounded-sm border border-gray-800 relative">
-        {content}
-      </div>
+      <VideoTrack
+        trackRef={localVideoTrack}
+        className="w-full h-full object-cover"
+      />
     );
-  }, [agentVideoTrack, config, roomState]);
-
-  useEffect(() => {
-    document.body.style.setProperty(
-      "--lk-theme-color",
-      // @ts-ignore
-      tailwindTheme.colors[config.settings.theme_color]["500"]
-    );
-    document.body.style.setProperty(
-      "--lk-drop-shadow",
-      `var(--lk-theme-color) 0px 0px 18px`
-    );
-  }, [config.settings.theme_color]);
+  }, [localVideoTrack]);
 
   const audioTileContent = useMemo(() => {
     const disconnectedContent = (
       <div className="flex flex-col items-center justify-center gap-2 text-gray-700 text-center w-full">
-        No audio track. Connect to get started.
+        No Agent Available. Re-Connect to get started.
       </div>
     );
 
     const waitingContent = (
       <div className="flex flex-col items-center gap-2 text-gray-700 text-center w-full">
         <LoadingSVG />
-        Waiting for audio track
+        Waiting for An Agent To Become Online
       </div>
     );
 
@@ -215,22 +178,16 @@ export default function Playground({
   const settingsTileContent = useMemo(() => {
     return (
       <div className="flex flex-col gap-4 h-full w-full items-start overflow-y-auto">
-        {config.description && (
-          <ConfigurationPanelItem title="Description">
-            {config.description}
-          </ConfigurationPanelItem>
-        )}
-
         <ConfigurationPanelItem title="Settings">
           {localParticipant && (
             <div className="flex flex-col gap-2">
               <NameValueRow
-                name="Room"
+                name="Agent Id"
                 value={name}
                 valueColor={`${config.settings.theme_color}-500`}
               />
               <NameValueRow
-                name="Participant"
+                name="Participant Id"
                 value={localParticipant.identity}
               />
             </div>
@@ -306,19 +263,10 @@ export default function Playground({
             />
           </ConfigurationPanelItem>
         </div>
-        {config.show_qr && (
-          <div className="w-full">
-            <ConfigurationPanelItem title="QR Code">
-              <QRCodeSVG value={window.location.href} width="128" />
-            </ConfigurationPanelItem>
-          </div>
-        )}
       </div>
     );
   }, [
-    config.description,
     config.settings,
-    config.show_qr,
     localParticipant,
     name,
     roomState,
@@ -329,24 +277,20 @@ export default function Playground({
     voiceAssistant.agent,
   ]);
 
-  let mobileTabs: PlaygroundTab[] = [];
-  if (config.settings.outputs.video) {
-    mobileTabs.push({
-      title: "Video",
+  let mobileTabs: PlaygroundTab[] = [
+    {
+      title: "Your Camera",
       content: (
         <PlaygroundTile
           className="w-full h-full grow"
           childrenClassName="justify-center"
         >
-          {videoTileContent}
+          {localVideoContent}
         </PlaygroundTile>
       ),
-    });
-  }
-
-  if (config.settings.outputs.audio) {
-    mobileTabs.push({
-      title: "Audio",
+    },
+    {
+      title: "Voice Assistant",
       content: (
         <PlaygroundTile
           className="w-full h-full grow"
@@ -355,98 +299,88 @@ export default function Playground({
           {audioTileContent}
         </PlaygroundTile>
       ),
-    });
-  }
-
-  if (config.settings.chat) {
-    mobileTabs.push({
+    },
+    {
       title: "Chat",
       content: chatTileContent,
-    });
-  }
-
-  mobileTabs.push({
-    title: "Settings",
-    content: (
-      <PlaygroundTile
-        padding={false}
-        backgroundColor="gray-950"
-        className="h-full w-full basis-1/4 items-start overflow-y-auto flex"
-        childrenClassName="h-full grow items-start"
-      >
-        {settingsTileContent}
-      </PlaygroundTile>
-    ),
-  });
+    },
+    {
+      title: "Settings",
+      content: (
+        <PlaygroundTile
+          padding={false}
+          backgroundColor="gray-950"
+          className="h-full w-full basis-1/4 items-start overflow-y-auto flex"
+          childrenClassName="h-full grow items-start"
+        >
+          {settingsTileContent}
+        </PlaygroundTile>
+      ),
+    },
+  ];
 
   return (
-    <>
-      <PlaygroundHeader
-        title={config.title}
-        logo={logo}
-        githubLink={config.github_link}
-        height={headerHeight}
-        accentColor={config.settings.theme_color}
-        connectionState={roomState}
-        onConnectClicked={() =>
-          onConnect(roomState === ConnectionState.Disconnected)
-        }
-      />
-      <div
-        className={`flex gap-4 py-4 grow w-full selection:bg-${config.settings.theme_color}-900`}
-        style={{ height: `calc(100% - ${headerHeight}px)` }}
-      >
-        <div className="flex flex-col grow basis-1/2 gap-4 h-full lg:hidden">
-          <PlaygroundTabbedTile
-            className="h-full"
-            tabs={mobileTabs}
-            initialTab={mobileTabs.length - 1}
-          />
-        </div>
-        <div
-          className={`flex-col grow basis-1/2 gap-4 h-full hidden lg:${
-            !config.settings.outputs.audio && !config.settings.outputs.video
-              ? "hidden"
-              : "flex"
-          }`}
+    <div className="flex flex-col h-full w-full bg-gray-100">
+      <div className="flex justify-between items-center bg-blue-600 text-white p-4">
+        <h2 className="text-xl font-semibold">Knolabs Dental AI Assistant</h2>
+        <button
+          onClick={onClose}
+          className="text-white hover:text-gray-200"
         >
-          {config.settings.outputs.video && (
-            <PlaygroundTile
-              title="Video"
-              className="w-full h-full grow"
-              childrenClassName="justify-center"
-            >
-              {videoTileContent}
-            </PlaygroundTile>
-          )}
+          Close
+        </button>
+      </div>
+      <div className="flex flex-grow p-4 gap-4 overflow-y-auto">
+        <div className="flex flex-col w-full lg:w-2/3 gap-4">
+          <PlaygroundTile
+            title="Your Camera"
+            className="w-full h-1/2"
+            childrenClassName="justify-center"
+          >
+            {localVideoContent}
+            <div className="absolute bottom-2 right-2">
+              <TrackToggle
+                source={Track.Source.Camera}
+                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+              >
+              </TrackToggle>
+            </div>
+          </PlaygroundTile>
           {config.settings.outputs.audio && (
             <PlaygroundTile
-              title="Audio"
-              className="w-full h-full grow"
+              title="Voice Assistant"
+              className="w-full h-1/2"
               childrenClassName="justify-center"
             >
               {audioTileContent}
             </PlaygroundTile>
           )}
         </div>
-
-        {config.settings.chat && (
+        <div className="hidden lg:flex flex-col w-1/3 gap-4">
+          {config.settings.chat && (
+            <PlaygroundTile
+              title="Chat"
+              className="w-full h-2/3"
+            >
+              {chatTileContent}
+            </PlaygroundTile>
+          )}
           <PlaygroundTile
-            title="Chat"
-            className="h-full grow basis-1/4 hidden lg:flex"
+            title="Settings"
+            className="w-full h-1/3"
+            childrenClassName="overflow-y-auto"
           >
-            {chatTileContent}
+            {settingsTileContent}
           </PlaygroundTile>
-        )}
-        <PlaygroundTile
-          padding={false}
-          backgroundColor="gray-950"
-          className="h-full w-full basis-1/4 items-start overflow-y-auto hidden max-w-[480px] lg:flex"
-          childrenClassName="h-full grow items-start"
-        >
-          {settingsTileContent}
-        </PlaygroundTile>
+        </div>
+        <div className="lg:hidden">
+          <PlaygroundTabbedTile
+            className="h-full"
+            tabs={mobileTabs}
+            initialTab={0}
+          />
+        </div>
       </div>
-    </>
+    </div>
   );
 }

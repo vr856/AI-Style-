@@ -1,76 +1,73 @@
 "use client"
 
 import { useCloud } from "@/cloud/useCloud";
-import React, { createContext, useState } from "react";
-import { useCallback } from "react";
+import React, { createContext, useState, useCallback, useContext } from "react";
 import { useConfig } from "./useConfig";
 import { useToast } from "@/components/toast/ToasterProvider";
 
 export type ConnectionMode = "cloud" | "manual" | "env"
 
-type TokenGeneratorData = {
-  shouldConnect: boolean;
+type ConnectionDetails = {
   wsUrl: string;
   token: string;
+  shouldConnect: boolean;
   mode: ConnectionMode;
-  disconnect: () => Promise<void>;
-  connect: (mode: ConnectionMode) => Promise<void>;
 };
 
-const ConnectionContext = createContext<TokenGeneratorData | undefined>(undefined);
+type ConnectionContextType = {
+  wsUrl: string;
+  token: string;
+  shouldConnect: boolean;
+  mode: ConnectionMode;
+  connect: (mode: ConnectionMode) => Promise<void>;
+  disconnect: () => Promise<void>;
+};
 
-export const ConnectionProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
+
+export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { generateToken, wsUrl: cloudWSUrl } = useCloud();
   const { setToastMessage } = useToast();
   const { config } = useConfig();
-  const [connectionDetails, setConnectionDetails] = useState<{
-    wsUrl: string;
-    token: string;
-    mode: ConnectionMode;
-    shouldConnect: boolean;
-  }>({ wsUrl: "", token: "", shouldConnect: false, mode: "manual" });
+  const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails>({
+    wsUrl: "",
+    token: "",
+    shouldConnect: false,
+    mode: "manual"
+  });
 
   const connect = useCallback(
     async (mode: ConnectionMode) => {
       let token = "";
       let url = "";
-      if (mode === "cloud") {
-        try {
+      try {
+        if (mode === "cloud") {
           token = await generateToken();
-        } catch (error) {
-          setToastMessage({
-            type: "error",
-            message:
-              "Failed to generate token, you may need to increase your role in this LiveKit Cloud project.",
-          });
+          url = cloudWSUrl;
+        } else if (mode === "env") {
+          if (!process.env.NEXT_PUBLIC_LIVEKIT_URL) {
+            throw new Error("NEXT_PUBLIC_LIVEKIT_URL is not set");
+          }
+          url = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+          const response = await fetch("/api/token");
+          if (!response.ok) {
+            throw new Error("Failed to fetch token");
+          }
+          const { accessToken } = await response.json();
+          token = accessToken;
+        } else {
+          token = config.settings.token;
+          url = config.settings.ws_url;
         }
-        url = cloudWSUrl;
-      } else if (mode === "env") {
-        if (!process.env.NEXT_PUBLIC_LIVEKIT_URL) {
-          throw new Error("NEXT_PUBLIC_LIVEKIT_URL is not set");
-        }
-        url = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-        const { accessToken } = await fetch("/api/token").then((res) =>
-          res.json()
-        );
-        token = accessToken;
-      } else {
-        token = config.settings.token;
-        url = config.settings.ws_url;
+        setConnectionDetails({ wsUrl: url, token, shouldConnect: true, mode });
+      } catch (error) {
+        setToastMessage({
+          type: "error",
+          message: `Failed to connect: ${(error as Error).message}`,
+        });
       }
-      setConnectionDetails({ wsUrl: url, token, shouldConnect: true, mode });
     },
-    [
-      cloudWSUrl,
-      config.settings.token,
-      config.settings.ws_url,
-      generateToken,
-      setToastMessage,
-    ]
+    [cloudWSUrl, config.settings.token, config.settings.ws_url, generateToken, setToastMessage]
   );
 
   const disconnect = useCallback(async () => {
@@ -94,9 +91,9 @@ export const ConnectionProvider = ({
 };
 
 export const useConnection = () => {
-  const context = React.useContext(ConnectionContext);
+  const context = useContext(ConnectionContext);
   if (context === undefined) {
     throw new Error("useConnection must be used within a ConnectionProvider");
   }
   return context;
-}
+};

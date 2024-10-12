@@ -3,7 +3,6 @@ type ChatMessageProps = {
   accentColor: string;
   name: string;
   isSelf: boolean;
-  hideName?: boolean;
 };
 
 export const ChatMessage = ({
@@ -11,25 +10,18 @@ export const ChatMessage = ({
   message,
   accentColor,
   isSelf,
-  hideName,
 }: ChatMessageProps) => {
   return (
-    <div className={`flex flex-col gap-1 ${hideName ? "pt-0" : "pt-6"}`}>
-      {!hideName && (
-        <div
-          className={`text-${
-            isSelf ? "gray-700" : accentColor + "-800 text-ts-" + accentColor
-          } uppercase text-xs`}
-        >
-          {name}
-        </div>
-      )}
+    <div className={`flex flex-col gap-1 mb-4 ${isSelf ? 'items-end' : 'items-start'}`}>
+      <div className={`text-xs font-semibold ${isSelf ? 'text-gray-600' : `text-${accentColor}-600`}`}>
+        {name}
+      </div>
       <div
-        className={`pr-4 text-${
-          isSelf ? "gray-300" : accentColor + "-500"
-        } text-sm ${
-          isSelf ? "" : "drop-shadow-" + accentColor
-        } whitespace-pre-line`}
+        className={`max-w-3/4 p-3 rounded-lg ${
+          isSelf
+            ? 'bg-gray-200 text-gray-800'
+            : `bg-${accentColor}-100 text-${accentColor}-800`
+        }`}
       >
         {message}
       </div>
