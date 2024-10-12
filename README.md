@@ -10,7 +10,7 @@ This project demonstrates the integration of LiveKit for real-time communication
 
 This project is covered in detail in our YouTube video tutorial:
 
-[Building an AI Dental Assistant with LiveKit and OpenAI](https://www.youtube.com/watch?v=-KMe--hGhMU)
+[![Building an AI Dental Assistant with LiveKit and OpenAI](https://img.youtube.com/vi/-KMe--hGhMU/0.jpg)](https://www.youtube.com/watch?v=-KMe--hGhMU)
 
 In this video, Avijit from Kno2gether walks through the code, explaining the integration of LiveKit, OpenAI, and the overall architecture of the AI assistant.
 
@@ -45,6 +45,8 @@ Kno2gether is a YouTube channel run by Avijit, focused on empowering businesses 
 ### AI Powered Ultimate SaaS Development Course
 
 Take your skills to the next level with our comprehensive SaaS development course. Learn how to build, deploy, and scale AI-powered SaaS applications.
+
+[![AI Powered Ultimate SaaS Development Course](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://knolabs.biz/upsell-saas-course-2139-9605)
 
 [Enroll in the Course](https://knolabs.biz/upsell-saas-course-2139-9605)
 
