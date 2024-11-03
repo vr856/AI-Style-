@@ -46,7 +46,7 @@ Kno2gether is a YouTube channel run by Avijit, focused on empowering businesses 
 
 Take your skills to the next level with our comprehensive SaaS development course. Learn how to build, deploy, and scale AI-powered SaaS applications.
 
-[![AI Powered Ultimate SaaS Development Course](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](https://knolabs.biz/upsell-saas-course-2139-9605)
+[![AI Powered Ultimate SaaS Development Course](https://img.youtube.com/vi/jxDLQfcbGTI/0.jpg)](https://knolabs.biz/upsell-saas-course-2139-9605)
 
 [Enroll in the Course](https://knolabs.biz/upsell-saas-course-2139-9605)
 
