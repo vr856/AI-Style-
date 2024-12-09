@@ -73,22 +73,6 @@ function ConnectionWrapper() {
   );
 }
 
-const backgroundVariants: Variants = {
-  animate: {
-    background: [
-      "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
-      "linear-gradient(45deg, #0093E9 0%, #80D0C7 100%)",
-      "linear-gradient(45deg, #8EC5FC 0%, #E0C3FC 100%)",
-      "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
-    ],
-    transition: {
-      duration: 100,
-      repeat: Infinity,
-      repeatType: "reverse" as const,
-    }
-  }
-};
-
 export default function Home() {
   return (
     <>
@@ -100,19 +84,18 @@ export default function Home() {
       </Head>
       <motion.main 
         className="flex flex-col items-center justify-center min-h-screen text-white overflow-hidden"
-        initial="initial"
         animate={{
           background: [
             "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
             "linear-gradient(45deg, #0093E9 0%, #80D0C7 100%)",
             "linear-gradient(45deg, #8EC5FC 0%, #E0C3FC 100%)",
-            "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
-          ],
-          transition: {
-            duration: 100,
-            repeat: Infinity,
-            repeatType: "reverse" as const,
-          },
+            "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)"
+          ]
+        }}
+        transition={{
+          duration: 100,
+          repeat: Infinity,
+          repeatType: "reverse" as const
         }}
       >
         <motion.div
