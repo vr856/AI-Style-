@@ -27,6 +27,8 @@ import {
 import { ConnectionState, LocalParticipant, Track } from "livekit-client";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import tailwindTheme from "../../lib/tailwindTheme.preval";
+import { motion } from "framer-motion";
+import styles from '../../styles/playground.module.css';
 
 export interface PlaygroundProps {
   logo?: ReactNode;
@@ -247,19 +249,19 @@ export default function Playground({
             title="Microphone"
             deviceSelectorKind="audioinput"
           >
-            <AudioInputTile trackRef={localMicTrack} />
+            <AudioInputTile
+              trackRef={localMicTrack}
+            />
           </ConfigurationPanelItem>
         )}
         <div className="w-full">
           <ConfigurationPanelItem title="Color">
             <ColorPicker
               colors={themeColors}
-              selectedColor={config.settings.theme_color}
-              onSelect={(color) => {
-                const userSettings = { ...config.settings };
-                userSettings.theme_color = color;
-                setUserSettings(userSettings);
-              }}
+              value={config.settings.theme_color}
+              onChange={(color) =>
+                setUserSettings({ ...config.settings, theme_color: color })
+              }
             />
           </ConfigurationPanelItem>
         </div>
@@ -279,108 +281,165 @@ export default function Playground({
 
   let mobileTabs: PlaygroundTab[] = [
     {
-      title: "Your Camera",
+      id: "camera",
+      label: "Your Camera",
       content: (
         <PlaygroundTile
           className="w-full h-full grow"
-          childrenClassName="justify-center"
         >
           {localVideoContent}
         </PlaygroundTile>
-      ),
+      )
     },
     {
-      title: "Voice Assistant",
+      id: "voice",
+      label: "Voice Assistant",
       content: (
         <PlaygroundTile
           className="w-full h-full grow"
-          childrenClassName="justify-center"
         >
           {audioTileContent}
         </PlaygroundTile>
-      ),
+      )
     },
     {
-      title: "Chat",
+      id: "chat",
+      label: "Chat",
       content: chatTileContent,
     },
     {
-      title: "Settings",
+      id: "settings",
+      label: "Settings",
       content: (
         <PlaygroundTile
-          padding={false}
-          backgroundColor="gray-950"
           className="h-full w-full basis-1/4 items-start overflow-y-auto flex"
-          childrenClassName="h-full grow items-start"
         >
-          {settingsTileContent}
+          <div className="flex flex-col gap-4 h-full w-full items-start overflow-y-auto">
+            <ConfigurationPanelItem title="Settings">
+              {localParticipant && (
+                <div className="flex flex-col gap-2">
+                  <NameValueRow
+                    name="Agent Id"
+                    value={name}
+                    valueColor={`${config.settings.theme_color}-500`}
+                  />
+                  <NameValueRow
+                    name="Participant Id"
+                    value={localParticipant.identity}
+                  />
+                </div>
+              )}
+            </ConfigurationPanelItem>
+          </div>
         </PlaygroundTile>
-      ),
-    },
+      )
+    }
   ];
 
   return (
-    <div className="flex flex-col h-full w-full bg-gray-100">
-      <div className="flex justify-between items-center bg-blue-600 text-white p-4">
-        <h2 className="text-xl font-semibold">Knolabs Dental AI Assistant</h2>
-        <button
-          onClick={onClose}
-          className="text-white hover:text-gray-200"
-        >
-          Close
-        </button>
-      </div>
-      <div className="flex flex-grow p-4 gap-4 overflow-y-auto">
-        <div className="flex flex-col w-full lg:w-2/3 gap-4">
-          <PlaygroundTile
-            title="Your Camera"
-            className="w-full h-1/2"
-            childrenClassName="justify-center"
-          >
-            {localVideoContent}
-            <div className="absolute bottom-2 right-2">
-              <TrackToggle
-                source={Track.Source.Camera}
-                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className={styles.container}
+    >
+      <motion.button
+        className={styles.closeBtn}
+        onClick={onClose}
+        whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.1)" }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </motion.button>
+
+      <div className={styles.mainGrid}>
+        {/* Left column */}
+        <div className={styles.colLeft}>
+          <div className={`${styles.videoTile} ${styles.glassEffect}`}>
+            <div className="relative w-full h-full">
+              {localVideoContent}
+              <motion.div
+                className="absolute bottom-4 right-4"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-              </TrackToggle>
+                <TrackToggle
+                  source={Track.Source.Camera}
+                  className={styles.controlBtn}
+                />
+              </motion.div>
             </div>
-          </PlaygroundTile>
-          {config.settings.outputs.audio && (
-            <PlaygroundTile
-              title="Voice Assistant"
-              className="w-full h-1/2"
-              childrenClassName="justify-center"
-            >
+          </div>
+          
+          <div className={`${styles.audioTile} ${styles.glassEffect}`}>
+            <div className="relative w-full h-full flex items-center justify-center">
               {audioTileContent}
-            </PlaygroundTile>
-          )}
+              <motion.div
+                className="absolute bottom-4 right-4"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <TrackToggle
+                  source={Track.Source.Microphone}
+                  className={styles.controlBtn}
+                />
+              </motion.div>
+            </div>
+          </div>
         </div>
-        <div className="hidden lg:flex flex-col w-1/3 gap-4">
-          {config.settings.chat && (
-            <PlaygroundTile
-              title="Chat"
-              className="w-full h-2/3"
-            >
-              {chatTileContent}
-            </PlaygroundTile>
-          )}
-          <PlaygroundTile
-            title="Settings"
-            className="w-full h-1/3"
-            childrenClassName="overflow-y-auto"
-          >
-            {settingsTileContent}
-          </PlaygroundTile>
+
+        {/* Center column */}
+        <div className={styles.colCenter}>
+          <div className={`${styles.chatTile} ${styles.glassEffect}`}>
+            <div className="h-full flex flex-col">
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Style Assistant</h2>
+              </div>
+              <div className={styles.scrollable}>
+                {chatTileContent}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="lg:hidden">
-          <PlaygroundTabbedTile
-            className="h-full"
-            tabs={mobileTabs}
-            initialTab={0}
-          />
+
+        {/* Right column */}
+        <div className={styles.colRight}>
+          <div className={`${styles.settingsTile} ${styles.glassEffect}`}>
+            <div className="h-full flex flex-col">
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Settings</h2>
+              </div>
+              <div className={styles.scrollable}>
+                <div className="space-y-6">
+                  <div>
+                    <label className={styles.settingsLabel}>Theme Color</label>
+                    <ColorPicker
+                      colors={themeColors}
+                      value={config.settings.theme_color}
+                      onChange={(color) =>
+                        setUserSettings({ ...config.settings, theme_color: color })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className={styles.settingsLabel}>Input Devices</label>
+                    <div className="space-y-3">
+                      <AudioInputTile
+                        trackRef={localMicTrack}
+                      />
+                    </div>
+                  </div>
+
+                  {settingsTileContent}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

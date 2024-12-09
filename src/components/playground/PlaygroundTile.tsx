@@ -1,107 +1,65 @@
-import { ReactNode, useState } from "react";
+import { motion } from "framer-motion";
+import { ReactNode } from "react";
 
-const titleHeight = 32;
-
-type PlaygroundTileProps = {
-  title?: string;
-  children?: ReactNode;
+export interface PlaygroundTileProps {
+  children: ReactNode;
   className?: string;
   childrenClassName?: string;
-  padding?: boolean;
-  backgroundColor?: string;
-};
+}
 
-export type PlaygroundTab = {
-  title: string;
-  content: ReactNode;
-};
-
-export type PlaygroundTabbedTileProps = {
-  tabs: PlaygroundTab[];
-  initialTab?: number;
-} & PlaygroundTileProps;
-
-export const PlaygroundTile: React.FC<PlaygroundTileProps> = ({
-  children,
-  title,
-  className,
-  childrenClassName,
-  padding = true,
-  backgroundColor = "transparent",
-}) => {
-  const contentPadding = padding ? 4 : 0;
+export function PlaygroundTile({ children, className = "", childrenClassName = "" }: PlaygroundTileProps) {
   return (
-    <div
-      className={`flex flex-col border rounded-sm border-gray-800 text-gray-500 bg-${backgroundColor} ${className}`}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl overflow-hidden ${className}`}
     >
-      {title && (
-        <div
-          className="flex items-center justify-center text-xs uppercase py-2 border-b border-b-gray-800 tracking-wider"
-          style={{
-            height: `${titleHeight}px`,
-          }}
-        >
-          <h2>{title}</h2>
-        </div>
-      )}
-      <div
-        className={`flex flex-col items-center grow w-full ${childrenClassName}`}
-        style={{
-          height: `calc(100% - ${title ? titleHeight + "px" : "0px"})`,
-          padding: `${contentPadding * 4}px`,
-        }}
-      >
+      <div className={childrenClassName}>
         {children}
       </div>
-    </div>
+    </motion.div>
   );
-};
+}
 
-export const PlaygroundTabbedTile: React.FC<PlaygroundTabbedTileProps> = ({
+export interface PlaygroundTabbedTileProps extends PlaygroundTileProps {
+  tabs: PlaygroundTab[];
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+export interface PlaygroundTab {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+}
+
+export function PlaygroundTabbedTile({
+  children,
+  className = "",
   tabs,
-  initialTab = 0,
-  className,
-  childrenClassName,
-  backgroundColor = "transparent",
-}) => {
-  const contentPadding = 4;
-  const [activeTab, setActiveTab] = useState(initialTab);
-  if(activeTab >= tabs.length) {
-    return null;
-  }
+  activeTab,
+  onTabChange,
+}: PlaygroundTabbedTileProps) {
   return (
-    <div
-      className={`flex flex-col h-full border rounded-sm border-gray-800 text-gray-500 bg-${backgroundColor} ${className}`}
-    >
-      <div
-        className="flex items-center justify-start text-xs uppercase border-b border-b-gray-800 tracking-wider"
-        style={{
-          height: `${titleHeight}px`,
-        }}
-      >
-        {tabs.map((tab, index) => (
-          <button
-            key={index}
-            className={`px-4 py-2 rounded-sm hover:bg-gray-800 hover:text-gray-300 border-r border-r-gray-800 ${
-              index === activeTab
-                ? `bg-gray-900 text-gray-300`
-                : `bg-transparent text-gray-500`
-            }`}
-            onClick={() => setActiveTab(index)}
+    <PlaygroundTile className={`flex flex-col ${className}`}>
+      <div className="flex gap-1 p-2 bg-black/20">
+        {tabs.map((tab) => (
+          <motion.button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+              ${activeTab === tab.id 
+                ? 'bg-white/10 text-white' 
+                : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {tab.title}
-          </button>
+            {tab.icon}
+            {tab.label}
+          </motion.button>
         ))}
       </div>
-      <div
-        className={`w-full ${childrenClassName}`}
-        style={{
-          height: `calc(100% - ${titleHeight}px)`,
-          padding: `${contentPadding * 4}px`,
-        }}
-      >
-        {tabs[activeTab].content}
-      </div>
-    </div>
+      <div className="flex-1 p-4">{children}</div>
+    </PlaygroundTile>
   );
-};
+}
