@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import Head from "next/head";
 import { useState } from "react";
 import { LiveKitRoom, RoomAudioRenderer, StartAudio } from "@livekit/components-react";
@@ -73,7 +73,7 @@ function ConnectionWrapper() {
   );
 }
 
-const backgroundVariants = {
+const backgroundVariants: Variants = {
   animate: {
     background: [
       "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
@@ -84,9 +84,9 @@ const backgroundVariants = {
     transition: {
       duration: 100,
       repeat: Infinity,
-      repeatType: "reverse",
-    },
-  },
+      repeatType: "reverse" as const,
+    }
+  }
 };
 
 export default function Home() {
@@ -100,8 +100,20 @@ export default function Home() {
       </Head>
       <motion.main 
         className="flex flex-col items-center justify-center min-h-screen text-white overflow-hidden"
-        variants={backgroundVariants}
-        animate="animate"
+        initial="initial"
+        animate={{
+          background: [
+            "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
+            "linear-gradient(45deg, #0093E9 0%, #80D0C7 100%)",
+            "linear-gradient(45deg, #8EC5FC 0%, #E0C3FC 100%)",
+            "linear-gradient(45deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
+          ],
+          transition: {
+            duration: 100,
+            repeat: Infinity,
+            repeatType: "reverse" as const,
+          },
+        }}
       >
         <motion.div
           initial={{ opacity: 0, y: -50 }}
