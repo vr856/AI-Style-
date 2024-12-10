@@ -24,7 +24,7 @@ import {
   useVoiceAssistant,
   TrackToggle,
 } from "@livekit/components-react";
-import { ConnectionState, LocalParticipant, Room, Track } from "livekit-client";
+import { ConnectionState, LocalParticipant, Room, Track, VideoResolution } from "livekit-client";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import tailwindTheme from "../../lib/tailwindTheme.preval";
 import { motion } from "framer-motion";
@@ -64,8 +64,8 @@ export default function Playground({
         publishDefaults: {
           simulcast: true,
           videoSimulcastLayers: [
-            { resolution: 'hd', width: 1280, height: 720, encoding: { maxBitrate: 1_500_000, maxFramerate: 30 } },
-            { resolution: 'sd', width: 640, height: 360, encoding: { maxBitrate: 500_000, maxFramerate: 30 } },
+            { resolution: VideoResolution.H720, width: 1280, height: 720, encoding: { maxBitrate: 1_500_000, maxFramerate: 30 } },
+            { resolution: VideoResolution.H360, width: 640, height: 360, encoding: { maxBitrate: 500_000, maxFramerate: 30 } },
           ],
         },
       });
@@ -322,7 +322,7 @@ export default function Playground({
             deviceSelectorKind="audioinput"
           >
             <AudioInputTile
-              trackRef={localMicTrack || { source: Track.Source.Microphone, participant: null }}
+              trackRef={localMicTrack || { source: Track.Source.Microphone, participant: localParticipant }}
             />
           </ConfigurationPanelItem>
         )}
@@ -500,7 +500,7 @@ export default function Playground({
                     <label className={styles.settingsLabel}>Input Devices</label>
                     <div className="space-y-3">
                       <AudioInputTile
-                        trackRef={localMicTrack || { source: Track.Source.Microphone, participant: null }}
+                        trackRef={localMicTrack || { source: Track.Source.Microphone, participant: localParticipant }}
                       />
                     </div>
                   </div>
