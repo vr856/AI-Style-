@@ -77,7 +77,7 @@ export default function Playground({
         room.disconnect();
       }
     };
-  }, []);
+  }, [room]);
 
   // Handle track enabling/disabling
   useEffect(() => {
