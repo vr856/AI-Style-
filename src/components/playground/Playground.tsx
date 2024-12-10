@@ -24,7 +24,7 @@ import {
   useVoiceAssistant,
   TrackToggle,
 } from "@livekit/components-react";
-import { ConnectionState, LocalParticipant, Room, Track, VideoResolution } from "livekit-client";
+import { ConnectionState, LocalParticipant, Room, Track, VideoPresets } from "livekit-client";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import tailwindTheme from "../../lib/tailwindTheme.preval";
 import { motion } from "framer-motion";
@@ -64,8 +64,8 @@ export default function Playground({
         publishDefaults: {
           simulcast: true,
           videoSimulcastLayers: [
-            { resolution: VideoResolution.H720, width: 1280, height: 720, encoding: { maxBitrate: 1_500_000, maxFramerate: 30 } },
-            { resolution: VideoResolution.H360, width: 640, height: 360, encoding: { maxBitrate: 500_000, maxFramerate: 30 } },
+            VideoPresets.h720,
+            VideoPresets.h360,
           ],
         },
       });
