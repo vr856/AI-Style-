@@ -24,7 +24,7 @@ import {
   useVoiceAssistant,
   TrackToggle,
 } from "@livekit/components-react";
-import { ConnectionState, LocalParticipant, Track } from "livekit-client";
+import { ConnectionState, LocalParticipant, Room, Track } from "livekit-client";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import tailwindTheme from "../../lib/tailwindTheme.preval";
 import { motion } from "framer-motion";
@@ -43,6 +43,8 @@ export default function Playground({
   onConnect,
   onClose,
 }: PlaygroundProps) {
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [room, setRoom] = useState<Room | null>(null);
   const { config, setUserSettings } = useConfig();
   const { name } = useRoomInfo();
   const [transcripts, setTranscripts] = useState<ChatMessageType[]>([]);
@@ -53,12 +55,82 @@ export default function Playground({
   const roomState = useConnectionState();
   const tracks = useTracks();
 
+  // Initialize room when component mounts
   useEffect(() => {
-    if (roomState === ConnectionState.Connected) {
-      localParticipant.setCameraEnabled(config.settings.inputs.camera);
-      localParticipant.setMicrophoneEnabled(config.settings.inputs.mic);
+    if (!room) {
+      const newRoom = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+        publishDefaults: {
+          simulcast: true,
+          videoSimulcastLayers: [
+            { resolution: 'hd', width: 1280, height: 720, encoding: { maxBitrate: 1_500_000, maxFramerate: 30 } },
+            { resolution: 'sd', width: 640, height: 360, encoding: { maxBitrate: 500_000, maxFramerate: 30 } },
+          ],
+        },
+      });
+      setRoom(newRoom);
     }
-  }, [config, localParticipant, roomState]);
+
+    return () => {
+      if (room) {
+        room.disconnect();
+      }
+    };
+  }, []);
+
+  // Handle track enabling/disabling
+  useEffect(() => {
+    if (roomState === ConnectionState.Connected && localParticipant && room) {
+      const enableTimer = setTimeout(async () => {
+        try {
+          // Enable camera if needed
+          if (config.settings.inputs.camera) {
+            await localParticipant.setCameraEnabled(true, { resolution: { width: 1280, height: 720 } });
+          }
+          
+          // Enable microphone if needed
+          if (config.settings.inputs.mic) {
+            await localParticipant.setMicrophoneEnabled(true, {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to enable tracks:', error);
+        }
+      }, 1000);
+
+      return () => clearTimeout(enableTimer);
+    }
+  }, [roomState, localParticipant, room, config.settings.inputs]);
+
+  // Handle reconnection
+  useEffect(() => {
+    if (roomState === ConnectionState.Disconnected && !isReconnecting && room) {
+      setIsReconnecting(true);
+      const reconnectTimer = setTimeout(async () => {
+        try {
+          await onConnect(true);
+        } finally {
+          setIsReconnecting(false);
+        }
+      }, 2000);
+
+      return () => clearTimeout(reconnectTimer);
+    }
+  }, [roomState, onConnect, isReconnecting, room]);
+
+  // Cleanup tracks on unmount
+  useEffect(() => {
+    return () => {
+      if (localParticipant) {
+        localParticipant.setCameraEnabled(false);
+        localParticipant.setMicrophoneEnabled(false);
+      }
+    };
+  }, [localParticipant]);
 
   const agentVideoTrack = tracks.find(
     (trackRef) =>

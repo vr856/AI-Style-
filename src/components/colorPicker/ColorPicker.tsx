@@ -1,15 +1,15 @@
 import { useState } from "react";
 
-type ColorPickerProps = {
+interface ColorPickerProps {
   colors: string[];
-  selectedColor: string;
-  onSelect: (color: string) => void;
-};
+  value: string;
+  onChange: (color: string) => void;
+}
 
 export const ColorPicker = ({
   colors,
-  selectedColor,
-  onSelect,
+  value,
+  onChange,
 }: ColorPickerProps) => {
   const [isHovering, setIsHovering] = useState(false);
   const onMouseEnter = () => {
@@ -26,7 +26,7 @@ export const ColorPicker = ({
       onMouseLeave={onMouseLeave}
     >
       {colors.map((color) => {
-        const isSelected = color === selectedColor;
+        const isSelected = color === value;
         const saturation = !isHovering && !isSelected ? "saturate-[0.25]" : "";
         const borderColor = isSelected
           ? `border border-${color}-800`
@@ -37,7 +37,7 @@ export const ColorPicker = ({
             key={color}
             className={`${saturation} rounded-md p-1 border-2 ${borderColor} cursor-pointer hover:opacity-100 transition transition-all duration-200 ${opacity} hover:scale-[1.05]`}
             onClick={() => {
-              onSelect(color);
+              onChange(color);
             }}
           >
             <div className={`w-5 h-5 bg-${color}-500 rounded-sm`}></div>

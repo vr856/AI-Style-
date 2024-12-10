@@ -31,6 +31,7 @@ export interface PlaygroundTab {
   id: string;
   label: string;
   icon?: ReactNode;
+  content: ReactNode;
 }
 
 export function PlaygroundTabbedTile({
