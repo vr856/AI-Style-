@@ -1,99 +1,124 @@
 "use client"
 
-import { useCloud } from "@/cloud/useCloud";
-import React, { createContext, useState, useCallback, useContext } from "react";
-import { useConfig } from "./useConfig";
-import { useToast } from "@/components/toast/ToasterProvider";
+import { useState, useCallback, useRef, createContext, useContext, ReactNode } from 'react';
+import { Room, VideoPresets } from 'livekit-client';
 
-export type ConnectionMode = "cloud" | "manual" | "env"
-
-type ConnectionDetails = {
-  wsUrl: string;
-  token: string;
-  shouldConnect: boolean;
-  mode: ConnectionMode;
-};
+export type ConnectionMode = "cloud" | "manual" | "env";
 
 type ConnectionContextType = {
-  wsUrl: string;
   token: string;
-  shouldConnect: boolean;
-  mode: ConnectionMode;
-  connect: (mode: ConnectionMode) => Promise<void>;
+  wsUrl: string;
+  connect: (identity: string) => Promise<boolean>;
   disconnect: () => Promise<void>;
+  connectionAttempts: number;
+  room: Room | null;
 };
 
 const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
 
-export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { generateToken, wsUrl: cloudWSUrl } = useCloud();
-  const { setToastMessage } = useToast();
-  const { config } = useConfig();
-  const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails>({
-    wsUrl: "",
-    token: "",
-    shouldConnect: false,
-    mode: "manual"
-  });
+export function ConnectionProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string>('');
+  const [wsUrl, setWsUrl] = useState<string>('');
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const roomRef = useRef<Room | null>(null);
 
-  const connect = useCallback(
-    async (mode: ConnectionMode) => {
-      let token = "";
-      let url = "";
-      try {
-        if (mode === "cloud") {
-          token = await generateToken();
-          url = cloudWSUrl;
-        } else if (mode === "env") {
-          if (!process.env.NEXT_PUBLIC_LIVEKIT_URL) {
-            throw new Error("NEXT_PUBLIC_LIVEKIT_URL is not set");
-          }
-          url = process.env.NEXT_PUBLIC_LIVEKIT_URL;
-          const response = await fetch("/api/token");
-          if (!response.ok) {
-            throw new Error("Failed to fetch token");
-          }
-          const { accessToken } = await response.json();
-          token = accessToken;
-        } else {
-          token = config.settings.token;
-          url = config.settings.ws_url;
-        }
-        setConnectionDetails({ wsUrl: url, token, shouldConnect: true, mode });
-      } catch (error) {
-        setToastMessage({
-          type: "error",
-          message: `Failed to connect: ${(error as Error).message}`,
+  const connect = useCallback(async (identity: string) => {
+    try {
+      // Limit reconnection attempts
+      if (connectionAttempts > 3) {
+        console.error('Maximum reconnection attempts reached');
+        return false;
+      }
+
+      // Get LiveKit URL from environment variable
+      const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+      if (!livekitUrl) {
+        throw new Error('LiveKit URL not configured');
+      }
+
+      setConnectionAttempts(prev => prev + 1);
+
+      // Initialize room if not exists
+      if (!roomRef.current) {
+        roomRef.current = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+          publishDefaults: {
+            simulcast: true,
+            videoSimulcastLayers: [
+              VideoPresets.h720,
+              VideoPresets.h360
+            ],
+          },
         });
       }
-    },
-    [cloudWSUrl, config.settings.token, config.settings.ws_url, generateToken, setToastMessage]
-  );
+
+      // Create a new token request
+      const resp = await fetch('/api/get-participant-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identity,
+          room: 'style-consultation',
+        }),
+      });
+
+      const data = await resp.json();
+      
+      if (!resp.ok) {
+        throw new Error(data.error || 'Failed to get token');
+      }
+
+      setToken(data.token);
+      setWsUrl(livekitUrl);
+      setConnectionAttempts(0); // Reset attempts on successful connection
+
+      // Connect to room
+      if (roomRef.current) {
+        await roomRef.current.connect(livekitUrl, data.token, {
+          autoSubscribe: true,
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Connection error:', error);
+      return false;
+    }
+  }, [connectionAttempts]);
 
   const disconnect = useCallback(async () => {
-    setConnectionDetails((prev) => ({ ...prev, shouldConnect: false }));
+    if (roomRef.current) {
+      await roomRef.current.disconnect();
+      roomRef.current = null;
+    }
+    setToken('');
+    setWsUrl('');
+    setConnectionAttempts(0);
   }, []);
 
   return (
-    <ConnectionContext.Provider
+    <ConnectionContext.Provider 
       value={{
-        wsUrl: connectionDetails.wsUrl,
-        token: connectionDetails.token,
-        shouldConnect: connectionDetails.shouldConnect,
-        mode: connectionDetails.mode,
+        token,
+        wsUrl,
         connect,
         disconnect,
+        connectionAttempts,
+        room: roomRef.current,
       }}
     >
       {children}
     </ConnectionContext.Provider>
   );
-};
+}
 
-export const useConnection = () => {
+export function useConnection() {
   const context = useContext(ConnectionContext);
   if (context === undefined) {
-    throw new Error("useConnection must be used within a ConnectionProvider");
+    throw new Error('useConnection must be used within a ConnectionProvider');
   }
   return context;
-};
+}
