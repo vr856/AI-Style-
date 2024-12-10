@@ -322,7 +322,7 @@ export default function Playground({
             deviceSelectorKind="audioinput"
           >
             <AudioInputTile
-              trackRef={localMicTrack}
+              trackRef={localMicTrack || { source: Track.Source.Microphone, participant: null }}
             />
           </ConfigurationPanelItem>
         )}
@@ -500,7 +500,7 @@ export default function Playground({
                     <label className={styles.settingsLabel}>Input Devices</label>
                     <div className="space-y-3">
                       <AudioInputTile
-                        trackRef={localMicTrack}
+                        trackRef={localMicTrack || { source: Track.Source.Microphone, participant: null }}
                       />
                     </div>
                   </div>

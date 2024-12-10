@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { Room, VideoPresets } from 'livekit-client';
 
+export type ConnectionMode = "cloud" | "manual" | "env";
+
 export function useConnection() {
   const [token, setToken] = useState<string>('');
   const [wsUrl, setWsUrl] = useState<string>('');
