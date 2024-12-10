@@ -1,9 +1,20 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, createContext, useContext, ReactNode } from 'react';
 import { Room, VideoPresets } from 'livekit-client';
 
 export type ConnectionMode = "cloud" | "manual" | "env";
 
-export function useConnection() {
+type ConnectionContextType = {
+  token: string;
+  wsUrl: string;
+  connect: (identity: string) => Promise<boolean>;
+  disconnect: () => Promise<void>;
+  connectionAttempts: number;
+  room: Room | null;
+};
+
+const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined);
+
+export function ConnectionProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string>('');
   const [wsUrl, setWsUrl] = useState<string>('');
   const [connectionAttempts, setConnectionAttempts] = useState(0);
@@ -86,12 +97,26 @@ export function useConnection() {
     setConnectionAttempts(0);
   }, []);
 
-  return {
-    token,
-    wsUrl,
-    connect,
-    disconnect,
-    connectionAttempts,
-    room: roomRef.current,
-  };
+  return (
+    <ConnectionContext.Provider 
+      value={{
+        token,
+        wsUrl,
+        connect,
+        disconnect,
+        connectionAttempts,
+        room: roomRef.current,
+      }}
+    >
+      {children}
+    </ConnectionContext.Provider>
+  );
+}
+
+export function useConnection() {
+  const context = useContext(ConnectionContext);
+  if (context === undefined) {
+    throw new Error('useConnection must be used within a ConnectionProvider');
+  }
+  return context;
 } 
